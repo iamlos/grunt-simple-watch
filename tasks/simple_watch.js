@@ -127,8 +127,12 @@ module.exports = function(grunt) {
 		function watchFile(filepath) {
 			if (!watchedFiles[filepath]) {
 				// add a new file to watched files
-				watchedFiles[filepath] = fs.statSync(filepath);
-				mtimes[filepath] = +watchedFiles[filepath].mtime;
+				try {
+					watchedFiles[filepath] = fs.statSync(filepath);
+					mtimes[filepath] = +watchedFiles[filepath].mtime;
+				} catch (err) {
+					// Eat the error, its probably from statSync and should be ignored
+				}
 			}
 		}
 
@@ -167,8 +171,17 @@ module.exports = function(grunt) {
 			});
 
 			currFiles.forEach(function(filepath){
-				// Get last modified time of file.
-				var mtime = +fs.statSync(filepath).mtime;
+				var hasError = false;
+				var mtime = 0;
+
+				try {
+					mtime = +fs.statSync(filepath).mtime;
+				} catch (err) {
+					hasError = true;
+				}
+
+				if (hasError) { return; }
+
 				// If same as stored mtime, the file hasn't changed.
 				if (mtime === mtimes[filepath]) { return; }
 				// Otherwise it has, store mtime for later use.
